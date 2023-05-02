@@ -1,3 +1,1 @@
-un truc
-
-deux trucs
+print("test")
