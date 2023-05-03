@@ -1,5 +1,5 @@
 import pandas as pd
-
+from numpy import *
 from Functions import*
 
 #%%
@@ -43,5 +43,10 @@ dataset_training_4 = dataset_analyse[(dataset_analyse['apt_no'] == 5)]
 
 model = build_model(param_input_size)
 
-print(input_data(20,50,dataset))
-print(output_data(50,dataset))
+input_test = tf.convert_to_tensor(input_data(20,50,dataset))
+
+prediction=model(input_test)
+
+exit=prediction.numpy().tolist()
+exit=exit[0][0]
+print(exit)
