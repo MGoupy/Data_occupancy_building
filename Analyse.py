@@ -1,7 +1,13 @@
 import pandas as pd
-import tensorflow as tf
 
 from Functions import*
+
+#%%
+##############################################################################
+### PARAMETERS ###
+##############################################################################
+
+param_input_size=20
 
 #%%
 ##############################################################################
@@ -35,4 +41,7 @@ dataset_training_4 = dataset_analyse[(dataset_analyse['apt_no'] == 5)]
 ### TRAINING / TEST DATA ###
 ##############################################################################
 
-print (len(dataset_training_3['apt_no']))
+model = build_model(param_input_size)
+
+print(input_data(20,50,dataset))
+print(output_data(50,dataset))
