@@ -1,23 +1,36 @@
 from keras import Sequential
+import keras
 import tensorflow as tf
+import numpy as np
+
 
 def build_model(input_size):
     
-    single_feature_normalizer = tf.keras.layers.Normalization(input_shape=[1,], axis=None)
-    
+    #Model structure
     model=Sequential([
-        #tf.keras.layers.Input(shape=(input_size,)),
-        single_feature_normalizer,
-        tf.keras.layers.Dense(input_size),
-        tf.keras.layers.Dense(1)
+        #tf.keras.layers.Normalization(input_shape=[input_size,], axis=None),
+        tf.keras.layers.Dense(100,input_shape=[input_size,], activation='relu'),
+        tf.keras.layers.Dense(10, activation='relu'),
+        tf.keras.layers.Dense(1,activation="sigmoid")
     ])
+    
+    #Training configuration
+    model.compile(
+        optimizer='adam', # Optimizer
+        loss='binary_crossentropy', # Loss function to minimize
+        metrics=['accuracy'], # List of metrics to monitor
+    )
+
     return model
 
 def input_data(input_size,t,dataset):
     data=[]
     for i in range(input_size):
         data.append(dataset['co2_concentration'][t-i])
-    return data
+    return np.array(data)
 
 def output_data(t,dataset):
-    return dataset['occupancy_ground_truth'][t]
+    data=[]
+    data.append(dataset['occupancy_ground_truth'][t])
+    data_1=[data]
+    return np.array(np.array(data_1))
