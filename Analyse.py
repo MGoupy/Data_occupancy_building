@@ -1,4 +1,7 @@
 import pandas as pd
+import tensorflow as tf
+
+from Functions import*
 
 #%%
 ##############################################################################
@@ -31,3 +34,5 @@ dataset_training_4 = dataset_analyse[(dataset_analyse['apt_no'] == 5)]
 ##############################################################################
 ### TRAINING / TEST DATA ###
 ##############################################################################
+
+print (len(dataset_training_3['apt_no']))
