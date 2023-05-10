@@ -1,14 +1,19 @@
 import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix, accuracy_score
 from numpy import *
-from Functions import*
+from Functions import *
+from random import randrange
 
 #%%
 ##############################################################################
 ### PARAMETERS ###
 ##############################################################################
 
-param_input_size=20
-param_train_max=5000
+param_input_before=32
+param_input_after=32
+param_add_occupancy=1
+param_add_void=1
 
 #%%
 ##############################################################################
@@ -16,6 +21,20 @@ param_train_max=5000
 ##############################################################################
 
 dataset = pd.read_csv('dataset_classification_hojbo.csv')
+"""
+#check ow much more time the romm is empty than occupied in the training sample 
+room_occ=0
+room_empty=0
+for i in range(len(dataset['train_test_data'])):
+    if dataset['train_test_data'][i] == 'training_data':
+        if dataset['occupancy_ground_truth'][i]==0:
+            room_empty+=1
+        else:
+            room_occ+=1
+print(room_occ)
+print(room_empty)
+"""
+
 
 #%%
 ##############################################################################
@@ -29,31 +48,43 @@ dataset_analyse=dataset.copy()
 ### DATA TREATMENT ###
 ##############################################################################
 
-#Split data for each appartment appartement 1 is the test appartment, appartments 2-4 are the training ones
-dataset_test = dataset_analyse[(dataset_analyse['apt_no'] == 1)]
+#Create training data for the model
+data_training = [[],[],[]] #training data for x and y
+room1=0
+room2=0
+for apt in [2,3,4,5]:
+    df=dataset_analyse[(dataset_analyse['apt_no'] == apt)]
+    df = df.reset_index(drop=True)
+    for i in range(len(df['apt_no'])-param_input_before-param_input_after):
+        if df['room_no'][i] == df['room_no'][i+param_input_after+param_input_before]:
+            if output_data(i+param_input_before,df)[0]==1:
+                add=param_add_occupancy
+            else:
+                add=param_add_void
+            for j in range(add):
+                #k=randrange(len(data_training[0])+1) #To randomize the inputs
+                k=len(data_training[0])
+                data_training[0].insert(k,input_data_timeseries(param_input_before,param_input_after,i+param_input_before,df))
+                data_training[1].insert(k,input_data_other(i+param_input_before,df))
+                data_training[2].insert(k,output_data(i+param_input_before,df))
 
-dataset_training_1 = dataset_analyse[(dataset_analyse['apt_no'] == 2)]
-dataset_training_2 = dataset_analyse[(dataset_analyse['apt_no'] == 3)]
-dataset_training_3 = dataset_analyse[(dataset_analyse['apt_no'] == 4)]
-dataset_training_4 = dataset_analyse[(dataset_analyse['apt_no'] == 5)]
-
-data_training_x=[]
-for i in range(len(dataset_analyse['apt_no'])-param_input_size):
-    data_training_x.append(input_data(param_input_size,i+param_input_size,dataset_analyse))
-    
-data_training_y=[]
-for i in range(len(dataset_analyse['apt_no'])-param_input_size):
-    data_training_y.append(output_data(i+param_input_size,dataset_analyse))
-
+          
+#Create test data data for the model
+data_test=[[],[],[]]
+df=dataset_analyse[(dataset_analyse['apt_no'] == 1)]
+df = df.reset_index(drop=True)
+for i in range(len(df['apt_no'])-param_input_before-param_input_after):
+    if df['room_no'][i] == df['room_no'][i+param_input_before]:
+        data_test[0].append(input_data_timeseries(param_input_before,param_input_after,i+param_input_before,df))
+        data_test[1].append(input_data_other(i+param_input_before,df))
+        data_test[2].append(output_data(i+param_input_before,df))
 
 #%%
 ##############################################################################
 ### MODEL CREATION ###
 ##############################################################################
 
-model = build_model(param_input_size)
-
-
+model = build_model(param_input_before,param_input_after)
 
 #%%
 ##############################################################################
@@ -61,26 +92,68 @@ model = build_model(param_input_size)
 ##############################################################################
 
 history = model.fit(
-    #data_training_x,
-    #data_training_y,
-    #expand_dims(data_training_x,axis=-1),
-    #expand_dims(data_training_y,axis=-1),
-    np.array(data_training_x),
-    np.array(data_training_y),
-    batch_size=32,
-    epochs=5
+    [tf.convert_to_tensor(data_training[0]),tf.convert_to_tensor(data_training[1])],
+    tf.convert_to_tensor(data_training[2]),
+    batch_size=64,
+    epochs=15
 )
+
 #%%
 ##############################################################################
 ### TESTING ###
 ##############################################################################
 
-input_test = data_training_x[:5]
-input_test = tf.reshape(input_test,shape=(5,20))
-#input_test = np.array(input_test)
+input_test = [np.array(data_test[0]),np.array(data_test[1])]
 prediction=model.predict(input_test)
 
-print("input:")
-print(input_test)
-print("output:")
-print(prediction)
+y_true=[]
+for i in range (len(data_test[2])):
+    y_true.append(data_test[2][i][0])
+y_pred=[]
+for i in range (len(prediction)):
+    if prediction[i]>0.5:
+        y_pred.append(1)
+    else:
+        y_pred.append(0)
+
+
+#%%
+##############################################################################
+### METRICS ###
+##############################################################################
+
+"Confusion matrix"
+# create the confusion matrix based on 
+cm = confusion_matrix(y_true, y_pred)
+print(cm)
+
+tn, fp, fn, tp = cm.ravel()
+
+print("True positives: ", tp)
+print("True negatives: ", tn)
+print("False positives: ", fp)
+print("False negatives: ", fn)
+
+"Percision and Recall"
+tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
+accuracy = (tp + tn) / (tp + tn + fp + fn)
+precision = tp / (tp + fp)
+recall = tp / (tp + fn)
+
+#percision and recall balance above 0.8
+print(f"Accuracy: {accuracy:.3f}")
+print(f"Precision: {precision:.3f}")
+print(f"Recall: {recall:.3f}")
+
+#%%
+##############################################################################
+### PLOTS ###
+##############################################################################
+n_plot=1000 #number of points to plot
+y_pred_plot=y_pred[:]
+y_true_plot=y_true[:]
+y_prob_plot=prediction[:]
+plt.plot(y_pred_plot,'r')
+plt.plot(y_true_plot,'g--')
+plt.plot(y_prob_plot,'b')
+plt.show()
