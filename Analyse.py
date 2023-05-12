@@ -4,14 +4,16 @@ from sklearn.metrics import confusion_matrix, accuracy_score
 from numpy import *
 from Functions import *
 from random import randrange
+from keras.callbacks import EarlyStopping
+from sklearn.feature_selection import RFE
 
 #%%
 ##############################################################################
 ### PARAMETERS ###
 ##############################################################################
 
-param_input_before=32
-param_input_after=32
+param_input_before=36
+param_input_after=36
 param_add_occupancy=1
 param_add_void=1
 
@@ -72,6 +74,7 @@ for apt in [2,3,4,5]:
 #Create test data data for the model
 data_test=[[],[],[]]
 df=dataset_analyse[(dataset_analyse['apt_no'] == 1)]
+#df=df[(dataset_analyse['room_no'] == 1)]
 df = df.reset_index(drop=True)
 for i in range(len(df['apt_no'])-param_input_before-param_input_after):
     if df['room_no'][i] == df['room_no'][i+param_input_before]:
@@ -85,23 +88,26 @@ for i in range(len(df['apt_no'])-param_input_before-param_input_after):
 ##############################################################################
 
 model = build_model(param_input_before,param_input_after)
-
 #%%
 ##############################################################################
 ### TRAINING ###
 ##############################################################################
 
+early_stop = EarlyStopping(monitor='val_loss', patience=500)
 history = model.fit(
     [tf.convert_to_tensor(data_training[0]),tf.convert_to_tensor(data_training[1])],
     tf.convert_to_tensor(data_training[2]),
     batch_size=64,
-    epochs=15
+    epochs=500,
+    validation_data=([tf.convert_to_tensor(data_test[0]),tf.convert_to_tensor(data_test[1])],tf.convert_to_tensor(data_test[2])),
+    callbacks=[early_stop]
 )
 
 #%%
 ##############################################################################
 ### TESTING ###
 ##############################################################################
+
 
 input_test = [np.array(data_test[0]),np.array(data_test[1])]
 prediction=model.predict(input_test)
@@ -149,11 +155,30 @@ print(f"Recall: {recall:.3f}")
 ##############################################################################
 ### PLOTS ###
 ##############################################################################
-n_plot=1000 #number of points to plot
+
+
+fig1 = plt.figure()
 y_pred_plot=y_pred[:]
 y_true_plot=y_true[:]
 y_prob_plot=prediction[:]
 plt.plot(y_pred_plot,'r')
 plt.plot(y_true_plot,'g--')
 plt.plot(y_prob_plot,'b')
+
+fig2 = plt.figure()
+plt.plot(history.history['loss'], label='Training loss')
+plt.plot(history.history['val_loss'], label='Validation loss')
+plt.title('Training and validation loss')
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+plt.legend()
+
+fig3 = plt.figure()
+plt.plot(history.history['accuracy'], label='Training accuracy')
+plt.plot(history.history['val_accuracy'], label='Validation accuracy')
+plt.title('Training and validation accuracy')
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+plt.legend()
+
 plt.show()
