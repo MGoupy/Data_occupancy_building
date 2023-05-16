@@ -5,9 +5,6 @@ from keras.layers import Dropout
 import numpy as np
 from keras import regularizers
 
-from sklearn.feature_selection import RFE
-from sklearn.linear_model import LogisticRegression
-
 def build_model(input_size_before,input_size_after):
     
     # Define the input layers
@@ -36,42 +33,32 @@ def build_model(input_size_before,input_size_after):
     
     # Define hidden layers for each input
     temp_hidden1 = tf.keras.layers.Dense(64, activation='relu',kernel_regularizer=regularizers.l2(0.001))(temp_normalized)
-    temp_dropout1 = Dropout(0.5)(temp_hidden1)
+    temp_dropout1 = Dropout(0.4)(temp_hidden1)
     temp_hidden2 = tf.keras.layers.Dense(64, activation='relu',kernel_regularizer=regularizers.l2(0.001))(temp_dropout1)
-    temp_dropout2 = Dropout(0.5)(temp_hidden2)
-    temp_hidden3 = tf.keras.layers.Dense(64, activation='relu',kernel_regularizer=regularizers.l2(0.001))(temp_dropout2)
-    temp_dropout3 = Dropout(0.5)(temp_hidden3)
+    temp_dropout2 = Dropout(0.4)(temp_hidden2)
     hum_hidden1 = tf.keras.layers.Dense(64, activation='relu',kernel_regularizer=regularizers.l2(0.001))(hum_normalized)
-    hum_dropout1 = Dropout(0.5)(hum_hidden1)
+    hum_dropout1 = Dropout(0.4)(hum_hidden1)
     hum_hidden2 = tf.keras.layers.Dense(64, activation='relu',kernel_regularizer=regularizers.l2(0.001))(hum_dropout1)
-    hum_dropout2 = Dropout(0.5)(hum_hidden2)
-    hum_hidden3 = tf.keras.layers.Dense(64, activation='relu',kernel_regularizer=regularizers.l2(0.001))(hum_dropout2)
-    hum_dropout3 = Dropout(0.5)(hum_hidden3)
+    hum_dropout2 = Dropout(0.4)(hum_hidden2)
     co2_hidden1 = tf.keras.layers.Dense(64, activation='relu',kernel_regularizer=regularizers.l2(0.001))(co2_normalized)
-    co2_dropout1 = Dropout(0.5)(co2_hidden1)
+    co2_dropout1 = Dropout(0.4)(co2_hidden1)
     co2_hidden2 = tf.keras.layers.Dense(64, activation='relu',kernel_regularizer=regularizers.l2(0.001))(co2_dropout1)
-    co2_dropout2 = Dropout(0.5)(co2_hidden2)
-    co2_hidden3 = tf.keras.layers.Dense(64, activation='relu',kernel_regularizer=regularizers.l2(0.001))(co2_dropout2)
-    co2_dropout3 = Dropout(0.5)(co2_hidden3)
+    co2_dropout2 = Dropout(0.4)(co2_hidden2)
     configuration_hidden = tf.keras.layers.Dense(32, activation='relu',kernel_regularizer=regularizers.l2(0.001))(configuration_normalized)
     configuration_hidden2 = tf.keras.layers.Dense(8, activation='relu',kernel_regularizer=regularizers.l2(0.001))(configuration_hidden)
     
     # Concatenate the inputs first line to use hour and day imput second line to not
-    concat = tf.keras.layers.Concatenate()([temp_dropout3, hum_dropout3, co2_dropout3, size_normalized, configuration_hidden2])
-    # concat = tf.keras.layers.Concatenate()([temp_dropout1, hum_dropout1, co2_dropout1, size_normalized])
-    # concat =tf.keras.layers.Concatenate()([configuration_hidden2])
+    concat = tf.keras.layers.Concatenate()([temp_dropout2, hum_dropout2, co2_dropout2, size_normalized, configuration_hidden2])
+
     concat_normalized = tf.keras.layers.BatchNormalization()(concat)
     # Define the hidden layers after concatenation
     hidden1 = tf.keras.layers.Dense(64, activation='relu',kernel_regularizer=regularizers.l2(0.001))(concat_normalized)
-    dropout1 = Dropout(0.1)(hidden1)
+    dropout1 = Dropout(0.2)(hidden1)
     hidden2 = tf.keras.layers.Dense(32, activation='relu',kernel_regularizer=regularizers.l2(0.001))(dropout1)
-    dropout2 = Dropout(0.1)(hidden2)
+    dropout2 = Dropout(0.2)(hidden2)
     hidden3 = tf.keras.layers.Dense(32, activation='relu',kernel_regularizer=regularizers.l2(0.001))(dropout2)
-    dropout3 = Dropout(0.1)(hidden3)
-    hidden4 = tf.keras.layers.Dense(16, activation='relu',kernel_regularizer=regularizers.l2(0.001))(dropout3)
-    dropout4 = Dropout(0.1)(hidden4)
     # Define the output layer
-    output = tf.keras.layers.Dense(1, activation='sigmoid')(dropout4)
+    output = tf.keras.layers.Dense(1, activation='sigmoid')(hidden3)
 
     # Define the model with separate inputs and hidden layers
     model = tf.keras.Model(inputs=[inputs_timeseries,inputs_other], outputs=output)

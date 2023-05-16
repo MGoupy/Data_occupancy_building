@@ -5,7 +5,7 @@ from numpy import *
 from Functions import *
 from random import randrange
 from keras.callbacks import EarlyStopping
-from sklearn.feature_selection import RFE
+import math
 
 #%%
 ##############################################################################
@@ -14,8 +14,6 @@ from sklearn.feature_selection import RFE
 
 param_input_before=36
 param_input_after=36
-param_add_occupancy=1
-param_add_void=1
 
 #%%
 ##############################################################################
@@ -23,20 +21,6 @@ param_add_void=1
 ##############################################################################
 
 dataset = pd.read_csv('dataset_classification_hojbo.csv')
-"""
-#check ow much more time the romm is empty than occupied in the training sample 
-room_occ=0
-room_empty=0
-for i in range(len(dataset['train_test_data'])):
-    if dataset['train_test_data'][i] == 'training_data':
-        if dataset['occupancy_ground_truth'][i]==0:
-            room_empty+=1
-        else:
-            room_occ+=1
-print(room_occ)
-print(room_empty)
-"""
-
 
 #%%
 ##############################################################################
@@ -54,24 +38,17 @@ dataset_analyse=dataset.copy()
 data_training = [[],[],[]] #training data for x and y
 room1=0
 room2=0
-for apt in [2,3,4,5]:
+for apt in [2, 3, 4, 5]:
     df=dataset_analyse[(dataset_analyse['apt_no'] == apt)]
     df = df.reset_index(drop=True)
     for i in range(len(df['apt_no'])-param_input_before-param_input_after):
         if df['room_no'][i] == df['room_no'][i+param_input_after+param_input_before]:
-            if output_data(i+param_input_before,df)[0]==1:
-                add=param_add_occupancy
-            else:
-                add=param_add_void
-            for j in range(add):
-                #k=randrange(len(data_training[0])+1) #To randomize the inputs
-                k=len(data_training[0])
-                data_training[0].insert(k,input_data_timeseries(param_input_before,param_input_after,i+param_input_before,df))
-                data_training[1].insert(k,input_data_other(i+param_input_before,df))
-                data_training[2].insert(k,output_data(i+param_input_before,df))
+            data_training[0].append(input_data_timeseries(param_input_before,param_input_after,i+param_input_before,df))
+            data_training[1].append(input_data_other(i+param_input_before,df))
+            data_training[2].append(output_data(i+param_input_before,df))
 
           
-#Create test data data for the model
+#Create test data data for the modelimage.png
 data_test=[[],[],[]]
 df=dataset_analyse[(dataset_analyse['apt_no'] == 1)]
 #df=df[(dataset_analyse['room_no'] == 1)]
@@ -145,11 +122,15 @@ tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
 accuracy = (tp + tn) / (tp + tn + fp + fn)
 precision = tp / (tp + fp)
 recall = tp / (tp + fn)
+f1 = 2*tp / (2*tp + fp + fn)
+phi = (tp * tn) / math.sqrt((tp+fn)*(fp+tn)*(tp+fp)*(tn+fn))
 
 #percision and recall balance above 0.8
 print(f"Accuracy: {accuracy:.3f}")
 print(f"Precision: {precision:.3f}")
 print(f"Recall: {recall:.3f}")
+print(f"F1-Score: {f1:.3f}")
+print(f"Phi coefficient: {phi:.3f}")
 
 #%%
 ##############################################################################
